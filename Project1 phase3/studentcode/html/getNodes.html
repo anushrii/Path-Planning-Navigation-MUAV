@@ -1,0 +1,337 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>getNodes</title><meta name="generator" content="MATLAB 7.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-02-11"><meta name="DC.source" content="getNodes.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">calculating allowable nodes on path by A*</a></li></ul></div><pre class="codeinput"><span class="keyword">function</span> [viaPoints, timeViaPoints] = getNodes(map,path,tmax)
+</pre><h2>calculating allowable nodes on path by A*<a name="2"></a></h2><pre class="codeinput"><span class="comment">% map = load_map('maps/map1.txt', 0.1, 2.0, 0.25);</span>
+<span class="comment">% start = {[0.0  -4.9 0.2]};</span>
+<span class="comment">% stop  = {[6.0  18.0-6 3.0]};</span>
+<span class="comment">% nquad = length(start);</span>
+<span class="comment">% for qn = 1:nquad</span>
+<span class="comment">%     path{qn} = dijkstra(map, start{qn}, stop{qn}, true);</span>
+<span class="comment">% end</span>
+<span class="comment">%</span>
+<span class="comment">% if nquad == 1</span>
+<span class="comment">%     plot_path(map, path{1});</span>
+<span class="comment">%     hold on</span>
+<span class="comment">% %     plot3(via_points(:,1),via_points(:,2),via_points(:,3),'r*','linewidth',2)</span>
+<span class="comment">% else</span>
+<span class="comment">%     % you could modify your plot_paths to handle cell input for multiple robots</span>
+<span class="comment">% end</span>
+<span class="comment">% path = path{1,1};</span>
+<span class="comment">% for i=1:size(path)-1</span>
+<span class="comment">%     slope(i) = (path(i,3)-path(i+1,3))/ sqrt((path(i,1)-path(i+1,1))^2 + (path(i,2)-path(i+1,2))^2)</span>
+<span class="comment">%     %slope2 = (path(i+1,3)-path(i+2,3))/ sqrt((path(i+1,1)-path(i+2,1))^2 + (path(i+1,2)-path(i+2,2))^2)</span>
+<span class="comment">% end</span>
+
+<span class="comment">% calulate slope components of x,y and z</span>
+
+
+
+slope = zeros(size(path,1),3);
+
+<span class="keyword">for</span> i=1:size(path,1)-1
+    slope(i,1) = (path(i,1)-path(i+1,1));
+    slope(i,2) = (path(i,2)-path(i+1,2));
+    slope(i,3) = (path(i,3)-path(i+1,3));
+    <span class="comment">%slope2 = (path(i+1,3)-path(i+2,3))/ sqrt((path(i+1,1)-path(i+2,1))^2 + (path(i+1,2)-path(i+2,2))^2)</span>
+<span class="keyword">end</span>
+
+slopeDel = zeros(size(path,1),3);
+<span class="keyword">for</span> i = 1:size(path,1)-1
+    slopeDel(i,1) = slope(i,1)-slope(i+1,1);
+    slopeDel(i,2) = slope(i,2)-slope(i+1,2);
+    slopeDel(i,3) = slope(i,3)-slope(i+1,3);
+<span class="keyword">end</span>
+ d = find(abs(slopeDel)&lt;1*10^-10);
+ slopeDel(d) = 0;
+
+ j=1;
+ <span class="keyword">for</span> i=1:size(path)-1
+    <span class="keyword">if</span>(abs(slopeDel(i,1))&gt;0||abs(slopeDel(i,2))&gt;0||abs(slopeDel(i,3)))
+<span class="comment">%          viaPoints(j,:) = [path(i+1,:),i+1];</span>
+       viaPoints(j,:) = path(i+1,:);
+        j=j+1;
+    <span class="keyword">end</span>
+
+ <span class="keyword">end</span>
+
+ <span class="comment">% set conditions for chosing intermediate points</span>
+
+<span class="comment">%  i=1;</span>
+<span class="comment">%  pathExtended = [];</span>
+<span class="comment">%  while(i~=size(viaPoints,1)-1)</span>
+<span class="comment">%</span>
+<span class="comment">%     pathExtended = [pathExtended ; path(viaPoints(i,end):5:viaPoints(i+1,end),:)];</span>
+<span class="comment">%     i = i+1;</span>
+<span class="comment">%  end</span>
+<span class="comment">%</span>
+<span class="comment">%</span>
+<span class="comment">% viaPoints = pathExtended;</span>
+<span class="comment">% viaPoints = unique(viaPoints,'rows');</span>
+
+m = map.gridmap;
+<span class="comment">% node = size(m,1)*size(m,2)*size(m,3);</span>
+<span class="comment">% [xn,yn,zn] = size(m);</span>
+<span class="comment">% [X Y Z] = ndgrid(1:xn,1:yn,1:zn);</span>
+<span class="comment">% all = [X(:) Y(:) Z(:)];</span>
+<span class="comment">%</span>
+<span class="comment">% linear = sub2ind(size(m),all(:,1),all(:,2),all(:,3));</span>
+<span class="comment">%</span>
+<span class="comment">% valid =find(m(linear));</span>
+<span class="comment">%</span>
+<span class="comment">% [i j k] = ind2sub(size(m),linear(valid));</span>
+<span class="comment">% valid_points = [i(:),j(:),k(:)];</span>
+<span class="comment">%</span>
+<span class="comment">% tol = 0.25;</span>
+newVia =[];
+point1 = viaPoints(1,:);
+<span class="keyword">for</span> j=1:size(viaPoints)-1
+
+    <span class="keyword">for</span> i = j:size(viaPoints)-1
+          point2 = viaPoints(i+1,:);
+          t=0:.001:1;
+          C=repmat(point1,length(t),1)'+(point2-point1)'*t;
+          collision = collide(map, C');
+            <span class="keyword">if</span>(collision==0)
+                 boom = [point1;point2];
+            <span class="keyword">end</span>
+     <span class="keyword">end</span>
+    newVia = [newVia;boom];
+    point1 = boom(2,:);
+<span class="keyword">end</span>
+
+t = 0.1;
+newVia = unique(newVia,<span class="string">'rows'</span>);
+viaPoints =[];
+<span class="keyword">for</span> i=1:size(newVia)-1
+    point1 = newVia(i,:);
+    point2 = newVia(i+1,:);
+    C=repmat(point1,length(t),1)'+(point2-point1)'*t;
+    viaPoints = [viaPoints; C];
+<span class="keyword">end</span>
+
+hold <span class="string">on</span>
+plot3(viaPoints(:,1),viaPoints(:,2),viaPoints(:,3),<span class="string">'r*'</span>,<span class="string">'linewidth'</span>,2)
+
+viaPoints = [path(1,:);viaPoints];
+distance= zeros((size(viaPoints,1)-1),1);
+<span class="comment">% segment lengths</span>
+<span class="keyword">for</span> i=1:size(viaPoints)-1
+   distance(i) = sqrt((viaPoints(i+1,1)-viaPoints(i,1))^2 + (viaPoints(i+1,2)-viaPoints(i,2))^2 + (viaPoints(i+1,3) -viaPoints(i,3))^2);
+
+<span class="keyword">end</span>
+<span class="comment">% tmax = 20;</span>
+dismax = sum(distance);
+
+timeVia = (tmax/dismax).*distance;
+timeViaPoints= zeros((size(viaPoints,1)-1),1);
+<span class="keyword">for</span> i=1:size(timeVia,1)
+    <span class="keyword">if</span>(i==1)
+    timeViaPoints(i) = timeVia(i)  ;
+    <span class="keyword">else</span>
+    timeViaPoints(i) = timeVia(i) + timeViaPoints(i-1);
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+timeViaPoints = [0;timeViaPoints];
+</pre><pre class="codeoutput">Error using getNodes (line 30)
+Not enough input arguments.
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.14<br></p></div><!--
+##### SOURCE BEGIN #####
+function [viaPoints, timeViaPoints] = getNodes(map,path,tmax)
+
+%% calculating allowable nodes on path by A*
+
+% map = load_map('maps/map1.txt', 0.1, 2.0, 0.25);
+% start = {[0.0  -4.9 0.2]};
+% stop  = {[6.0  18.0-6 3.0]};
+% nquad = length(start);
+% for qn = 1:nquad
+%     path{qn} = dijkstra(map, start{qn}, stop{qn}, true);
+% end
+% 
+% if nquad == 1
+%     plot_path(map, path{1});
+%     hold on
+% %     plot3(via_points(:,1),via_points(:,2),via_points(:,3),'r*','linewidth',2)
+% else
+%     % you could modify your plot_paths to handle cell input for multiple robots
+% end
+% path = path{1,1};
+% for i=1:size(path)-1
+%     slope(i) = (path(i,3)-path(i+1,3))/ sqrt((path(i,1)-path(i+1,1))^2 + (path(i,2)-path(i+1,2))^2)
+%     %slope2 = (path(i+1,3)-path(i+2,3))/ sqrt((path(i+1,1)-path(i+2,1))^2 + (path(i+1,2)-path(i+2,2))^2)
+% end
+
+% calulate slope components of x,y and z
+
+
+
+slope = zeros(size(path,1),3);
+
+for i=1:size(path,1)-1
+    slope(i,1) = (path(i,1)-path(i+1,1));
+    slope(i,2) = (path(i,2)-path(i+1,2));
+    slope(i,3) = (path(i,3)-path(i+1,3));
+    %slope2 = (path(i+1,3)-path(i+2,3))/ sqrt((path(i+1,1)-path(i+2,1))^2 + (path(i+1,2)-path(i+2,2))^2)
+end
+
+slopeDel = zeros(size(path,1),3);
+for i = 1:size(path,1)-1
+    slopeDel(i,1) = slope(i,1)-slope(i+1,1);
+    slopeDel(i,2) = slope(i,2)-slope(i+1,2);
+    slopeDel(i,3) = slope(i,3)-slope(i+1,3);
+end
+ d = find(abs(slopeDel)<1*10^-10);
+ slopeDel(d) = 0;
+ 
+ j=1;
+ for i=1:size(path)-1
+    if(abs(slopeDel(i,1))>0||abs(slopeDel(i,2))>0||abs(slopeDel(i,3)))
+%          viaPoints(j,:) = [path(i+1,:),i+1];
+       viaPoints(j,:) = path(i+1,:);
+        j=j+1;  
+    end
+    
+ end
+ 
+ % set conditions for chosing intermediate points
+ 
+%  i=1;
+%  pathExtended = [];
+%  while(i~=size(viaPoints,1)-1)
+%      
+%     pathExtended = [pathExtended ; path(viaPoints(i,end):5:viaPoints(i+1,end),:)];
+%     i = i+1;
+%  end
+%  
+%  
+% viaPoints = pathExtended;
+% viaPoints = unique(viaPoints,'rows');
+
+m = map.gridmap;
+% node = size(m,1)*size(m,2)*size(m,3);
+% [xn,yn,zn] = size(m);
+% [X Y Z] = ndgrid(1:xn,1:yn,1:zn);
+% all = [X(:) Y(:) Z(:)];
+% 
+% linear = sub2ind(size(m),all(:,1),all(:,2),all(:,3));
+% 
+% valid =find(m(linear));
+% 
+% [i j k] = ind2sub(size(m),linear(valid));
+% valid_points = [i(:),j(:),k(:)];
+% 
+% tol = 0.25;
+newVia =[];
+point1 = viaPoints(1,:);
+for j=1:size(viaPoints)-1
+ 
+    for i = j:size(viaPoints)-1     
+          point2 = viaPoints(i+1,:);
+          t=0:.001:1;
+          C=repmat(point1,length(t),1)'+(point2-point1)'*t;
+          collision = collide(map, C');
+            if(collision==0)
+                 boom = [point1;point2];
+            end
+     end
+    newVia = [newVia;boom];
+    point1 = boom(2,:);
+end
+
+t = 0.1;
+newVia = unique(newVia,'rows');
+viaPoints =[];
+for i=1:size(newVia)-1
+    point1 = newVia(i,:);
+    point2 = newVia(i+1,:);
+    C=repmat(point1,length(t),1)'+(point2-point1)'*t;
+    viaPoints = [viaPoints; C];
+end
+
+hold on
+plot3(viaPoints(:,1),viaPoints(:,2),viaPoints(:,3),'r*','linewidth',2)
+   
+viaPoints = [path(1,:);viaPoints];
+distance= zeros((size(viaPoints,1)-1),1);
+% segment lengths
+for i=1:size(viaPoints)-1
+   distance(i) = sqrt((viaPoints(i+1,1)-viaPoints(i,1))^2 + (viaPoints(i+1,2)-viaPoints(i,2))^2 + (viaPoints(i+1,3) -viaPoints(i,3))^2);
+    
+end
+% tmax = 20;
+dismax = sum(distance);
+
+timeVia = (tmax/dismax).*distance;
+timeViaPoints= zeros((size(viaPoints,1)-1),1);
+for i=1:size(timeVia,1)
+    if(i==1)
+    timeViaPoints(i) = timeVia(i)  ;
+    else
+    timeViaPoints(i) = timeVia(i) + timeViaPoints(i-1);
+    end
+end
+timeViaPoints = [0;timeViaPoints];
+
+
+
+
+
+
+##### SOURCE END #####
+--></body></html>

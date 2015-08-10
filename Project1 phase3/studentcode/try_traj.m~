@@ -1,0 +1,43 @@
+%% no. of trajectory pieces  
+
+map = zeros(3,3,3);
+path = [1,1,1;2,2,2;3,3,3];
+start = {[1,1,1]};
+stop={[3,3,3]};
+% numNodes = size(path,1);
+% t = 0:30;
+
+% map = load_map('maps/map1.txt', 0.1, 2.0, 0.25);
+% start = {[0.0  -4.9 0.2]};
+% stop  = {[6.0  18.0 3.0]};
+nquad = length(start);
+for qn = 1:nquad
+    path{qn} = dijkstra(map, start{qn}, stop{qn}, true);
+end
+
+if nquad == 1
+    plot_path(map, path{1});
+    hold on
+%     plot3(via_points(:,1),via_points(:,2),via_points(:,3),'r*','linewidth',2)
+else
+    % you could modify your plot_paths to handle cell input for multiple robots
+end
+pathMap = path{1,1};
+%% code here the reduced set of nodes for smoothening 
+
+pathMap = 
+
+[viaPoints, timeViaPoints] = getNodes(pathMap);
+
+path = viaPoints;
+
+ax=getCoeffs(path,timeViaPoints,1);
+ay=getCoeffs(path,timeViaPoints,2);
+az=getCoeffs(path,timeViaPoints,3);
+
+
+% for different intervals pos and velocity are diff, given by the following
+% formula.  
+% 	pos(i,1) = a0 + a1*t + a2*t.^2 + a3*t.^3 + a4*t.^4 + a5*t.^5;	
+%     vel(i,1) = a1 + 2*a2*t + 3*a3*t.^2 + 4*a4*t.^3 + 5*a5*t.^4;
+
